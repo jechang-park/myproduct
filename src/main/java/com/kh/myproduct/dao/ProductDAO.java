@@ -6,6 +6,7 @@ import java.util.Optional;
 public interface ProductDAO {
   /**
    * 등록
+   *
    * @param product 상품
    * @return 상품아이디
    */
@@ -13,6 +14,7 @@ public interface ProductDAO {
 
   /**
    * 조회
+   *
    * @param productId 상품아이디
    * @return 상품
    */
@@ -20,14 +22,16 @@ public interface ProductDAO {
 
   /**
    * 수정
+   *
    * @param productId 상품아이디
-   * @param product 상품
+   * @param product   상품
    * @return 수정된 레코드 수
    */
-  int update(Long productId,Product product);
+  int update(Long productId, Product product);
 
   /**
    * 삭제
+   *
    * @param productId 상품아이디
    * @return 삭제된 레코드 수
    */
@@ -35,6 +39,7 @@ public interface ProductDAO {
 
   /**
    * 목록
+   *
    * @return 상품목록
    */
   List<Product> findAll();

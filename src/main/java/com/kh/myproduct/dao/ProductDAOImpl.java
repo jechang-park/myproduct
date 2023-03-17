@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -12,6 +13,8 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,10 +22,9 @@ import java.util.Optional;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class ProductDAOImpl implements ProductDAO{
+public class ProductDAOImpl implements ProductDAO {
 
   private final NamedParameterJdbcTemplate template;
-
 
   /**
    * 등록
@@ -38,9 +40,12 @@ public class ProductDAOImpl implements ProductDAO{
 
     SqlParameterSource param = new BeanPropertySqlParameterSource(product);
     KeyHolder keyHolder = new GeneratedKeyHolder();
-    template.update(sb.toString(),param,keyHolder,new String[]{"product_id"});
+    template.update(sb.toString(), param, keyHolder, new String[]{"product_id"});
+//    template.update(sb.toString(),param,keyHolder,new String[]{"product_id","pname"});
 
     long productId = keyHolder.getKey().longValue(); //상품아이디
+
+    //String pname = (String)keyHolder.getKeys().get("pname");
     return productId;
   }
 
@@ -59,8 +64,9 @@ public class ProductDAOImpl implements ProductDAO{
 
     try {
       Map<String, Long> param = Map.of("id", productId);
+
       Product product = template.queryForObject(
-          sb.toString(), param, BeanPropertyRowMapper.newInstance(Product.class));
+          sb.toString(), param, productRowMapper());
       return Optional.of(product);
     } catch (EmptyResultDataAccessException e) {
       //조회결과가 없는 경우
@@ -85,12 +91,12 @@ public class ProductDAOImpl implements ProductDAO{
     sb.append(" where product_id = :id ");
 
     SqlParameterSource param = new MapSqlParameterSource()
-        .addValue("pname",product.getPname())
-        .addValue("quantity",product.getQuantity())
-        .addValue("price",product.getPrice())
-        .addValue("id",productId);
+        .addValue("pname", product.getPname())
+        .addValue("quantity", product.getQuantity())
+        .addValue("price", product.getPrice())
+        .addValue("id", productId);
 
-    return template.update(sb.toString(),param);
+    return template.update(sb.toString(), param);
   }
 
   /**
@@ -102,7 +108,7 @@ public class ProductDAOImpl implements ProductDAO{
   @Override
   public int delete(Long productId) {
     String sql = "delete from product where product_id = :id ";
-    return template.update(sql,Map.of("id",productId));
+    return template.update(sql, Map.of("id", productId));
   }
 
   /**
@@ -123,4 +129,53 @@ public class ProductDAOImpl implements ProductDAO{
 
     return list;
   }
+
+  //수동 매핑
+  private RowMapper<Product> productRowMapper() {
+    return (rs, rowNum) -> {
+      Product product = new Product();
+      product.setProductId(rs.getLong("product_id"));
+      product.setPname(rs.getString("pname"));
+      product.setQuantity(rs.getLong("quantity"));
+      product.setPrice(rs.getLong("price"));
+      return product;
+    };
+  }
+
+//  RowMapper<Product> rowMapper = new RowMapper<Product>() {
+//    @Override
+//    public Product mapRow(ResultSet rs, int rowNum) throws SQLException {
+//      Product product = new Product();
+//      product.setProductId(rs.getLong("product_id"));
+//      product.setPname(rs.getString("pname"));
+//      product.setQuantity(rs.getLong("quantity"));
+//      product.setPrice(rs.getLong("price"));
+//      return product;
+//    }
+//  };
+//
+//  RowMapper<Product> rowMapper2 = (rs, rowNum) -> {
+//      Product product = new Product();
+//      product.setProductId(rs.getLong("product_id"));
+//      product.setPname(rs.getString("pname"));
+//      product.setQuantity(rs.getLong("quantity"));
+//      product.setPrice(rs.getLong("price"));
+//      return product;
+//  };
+
+  class RowMapperImpl implements RowMapper<Product> {
+
+    @Override
+    public Product mapRow(ResultSet rs, int rowNum) throws SQLException {
+      Product product = new Product();
+      product.setProductId(rs.getLong("product_id"));
+      product.setPname(rs.getString("pname"));
+      product.setQuantity(rs.getLong("quantity"));
+      product.setPrice(rs.getLong("price"));
+      return product;
+    }
+  }
+
+  //자동매핑 : 테이블의 컬럼명과 자바객체 타입의 멤버필드가 같아야한다.
+  // BeanPropertyRowMapper.newInstance(자바객체타입)
 }
